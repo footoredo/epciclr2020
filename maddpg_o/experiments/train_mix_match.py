@@ -35,7 +35,7 @@ def renumber(read_path, write_path, r, delta):
         joblib.dump(weights, os.path.join(write_path, "agent{}.trainable-weights".format(i + delta)))
 
 
-def mix_match(FLAGS):
+def mix_match(FLAGS, double=True):
     save_dir = FLAGS.save_dir
     initial_dir = os.path.join(save_dir, "initial")
     touch_dir(initial_dir)
@@ -43,24 +43,28 @@ def mix_match(FLAGS):
     n_sheep = FLAGS.num_good
     n_wolves = FLAGS.num_adversaries
 
-    renumber(FLAGS.wolf_init_load_dirs[0], initial_dir, range(n_wolves), 0)
-    renumber(FLAGS.wolf_init_load_dirs[1], initial_dir, range(n_wolves), n_wolves)
-    renumber(FLAGS.sheep_init_load_dirs[0], initial_dir, range(n_wolves, n_wolves + n_sheep), n_wolves)
-    renumber(FLAGS.sheep_init_load_dirs[1], initial_dir, range(n_wolves, n_wolves + n_sheep), n_wolves + n_sheep)
+    if double:
+        renumber(FLAGS.wolf_init_load_dirs[0], initial_dir, range(n_wolves), 0)
+        renumber(FLAGS.wolf_init_load_dirs[1], initial_dir, range(n_wolves), n_wolves)
+        renumber(FLAGS.sheep_init_load_dirs[0], initial_dir, range(n_wolves, n_wolves + n_sheep), n_wolves)
+        renumber(FLAGS.sheep_init_load_dirs[1], initial_dir, range(n_wolves, n_wolves + n_sheep), n_wolves + n_sheep)
+    else:
+        renumber(FLAGS.wolf_init_load_dirs[0], initial_dir, range(n_wolves), 0)
+        renumber(FLAGS.sheep_init_load_dirs[0], initial_dir, range(n_wolves, n_wolves + n_sheep), 0)
 
     init_weight_config = {
-        "old_n_good": n_sheep * 2,
-        "old_n_adv": n_wolves * 2,
+        "old_n_good": n_sheep * 2 if double else n_sheep,
+        "old_n_adv": n_wolves * 2 if double else n_wolves,
         "new_ids": [],
         "old_load_dir": initial_dir,
-        "id_mapping": list(range(n_sheep * 2 + n_wolves * 2))
+        "id_mapping": list(range(n_sheep * 2 + n_wolves * 2 if double else n_wolves + n_sheep))
     }
 
     import copy
     flags = copy.deepcopy(FLAGS)
 
-    flags.num_good = n_sheep * 2
-    flags.num_adversaries = n_wolves * 2
+    flags.num_good = n_sheep * 2 if double else n_sheep
+    flags.num_adversaries = n_wolves * 2 if double else n_wolves
 
     import json
     json.dump({
